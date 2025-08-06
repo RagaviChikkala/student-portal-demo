@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QuickPoll - Vote Now!</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>📊 QuickPoll</h1>
+    <div id="poll-container">
+      <h2 id="question">Loading poll...</h2>
+      <div id="options"></div>
+    </div>
+  </div>
+
+  <!-- Include Socket.IO client (only if backend supports it) -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const pollId = '123'; // In a real app, get this dynamically
+
+    async function fetchPoll() {
+      const res = await fetch(`/polls/${pollId}`);
+      const poll = await res.json();
+      renderPoll(poll);
+    }
+
+    function renderPoll(poll) {
+      document.getElementById('question').textContent = poll.question;
+      const optionsDiv = document.getElementById('options');
+      optionsDiv.innerHTML = '';
+
+      poll.options.forEach((option, index) => {
+        const btn = document.createElement('button');
+        btn.classList.add('option-button');
+        btn.innerHTML = `${option} <span class="vote-count">(${poll.votes[index]})</span>`;
+        btn.onclick = () => vote(index);
+        optionsDiv.appendChild(btn);
+      });
+    }
+
+    async function vote(optionIndex) {
+      await fetch(`/vote/${pollId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ optionIndex })
+      });
+    }
+
+    // Socket.IO for live update (optional)
+    const socket = io();
+    socket.on('voteUpdate', (updatedPoll) => {
+      if (updatedPoll.id == pollId) {
+        renderPoll(updatedPoll);
+      }
+    });
+
+    fetchPoll();
+  </script>
+</body>
+</html>
